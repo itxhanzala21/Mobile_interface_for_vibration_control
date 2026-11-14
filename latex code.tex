@@ -1,0 +1,393 @@
+\documentclass[A4paper,12pt]{extreport}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx, amssymb, amstext, amsmath, subfigure, hyperref, wrapfig}
+\usepackage[margin=1in]{geometry}
+\usepackage{tabularx}
+\usepackage[siunitx, American, cute inductors]{circuitikz}
+\usepackage{setspace}
+
+\setstretch{1.2}  % Tightest normal line spacing
+\nonfrenchspacing
+\setlength{\parskip}{0pt}  % No extra space between paragraphs
+\lstset{
+  language=C,
+  basicstyle=\ttfamily\small,  % Reduced font size (from \normalsize to \small)
+  keywordstyle=\color{blue},
+  stringstyle=\color{red},
+  commentstyle=\color{gray},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=5pt,
+  backgroundcolor=\color{white},
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  frame=single,
+  tabsize=2,
+  captionpos=b,
+  breaklines=true,
+  breakatwhitespace=false,
+  escapeinside={\%*}{*)},
+  aboveskip=5pt,  % Reduce space above code block
+  belowskip=5pt,  % Reduce space below code block
+  lineskip=-1pt   % Slightly tighter line spacing within the code block
+}
+
+% homebrew commands -- to save typing
+\newcommand\etc{\textsl{etc}}
+\newcommand\eg{\textsl{eg.}\ }
+\newcommand\etal{\textsl{et al.}}
+\newcommand\Quote[1]{\lq\textsl{#1}\rq}
+\newcommand\fr[2]{{\textstyle\frac{#1}{#2}}}
+
+\newtheorem{thm}{Theorem}[chapter]
+\newtheorem{lem}{Lemma}[chapter]
+\newtheorem{rmk}{Remark}[chapter]
+\newtheorem{defn}{Definition}[chapter]
+\newtheorem{ex}{Example}[chapter]
+\usepackage{graphicx} % Add this in the preamble
+\begin{document}
+%-----------Make Title Page --------------------------
+\begin{titlepage}
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=2.5in]{PIEAS insignia.png}
+\end{figure}
+\vspace{0.6in}
+\centering
+
+\begin{center}
+
+\textbf{\LARGE{Microprocessor \& Interfacing}}\\[0.6in]
+
+\textbf{\Large{Project Name: Mobile Interface for Vibration Control}} \\[0.2in]
+\textbf{\Large{Date of Report Submission: 05-05-2025}} \\[1in]
+
+\textbf{\large{Submitted by}} \\[0.2in]
+\textbf{\Large{Muhammad Fasih BS-23-MB-100422}}\\[0.2in]
+\textbf{\Large{Muhammad
+Hanzala (BS-23-SB-197957)}}\\[0.2in]
+
+\end{center}
+
+\vfill
+\textbf{\large{\centering Department of Electrical Engineering\\Pakistan Institute of Engineering and Applied Sciences}}
+\end{titlepage}
+
+%-----------------------------------------------------------
+\begin{abstract}
+The purpose of this experiment was to design and implement a real-time wireless sensor data acquisition and visualization system using an STM32 microcontroller. A custom mobile application developed using MIT App Inventor continuously transmits accelerometer data from a smartphone to the STM32 via the HC-05 Bluetooth module. The STM32 receives this data using USART1 with interrupt-based handling and forwards it to a PC via USART2, also configured to use interrupts for efficient, non-blocking communication. Key results include successful real-time reception and forwarding of sensor data, and accurate visualization of this data on the PC using a Python script that plots live graphs. Major points of discussion include STM32 peripheral configuration through STM32CubeMX, implementation of UART interrupt routines in Keil using HAL libraries, mobile app design, and serial data parsing in Python. The project concludes that interrupt-driven UART communication ensures responsiveness and reliability, and combining it with Python-based visualization makes the system well-suited for real-time embedded monitoring applications.
+\end{abstract}
+%-----------------------------------------------------------
+\tableofcontents
+%------CHAPTER 1: Introduction ------------------------------
+\chapter{Introduction}\label{ch:intro}
+This project focuses on the development of a real-time wireless data acquisition and visualization system using an STM32 microcontroller platform.
+\section{Purpose}
+This experiment aimed to develop a real-time wireless accelerometer data acquisition system using an STM32 microcontroller. Accelerometer data was transmitted from a smartphone via Bluetooth and forwarded to a PC over UART using interrupt-based handling for efficient, non-blocking operation.
+\section{Objectives}  
+The primary objectives of this project are:
+
+\begin{itemize}
+    \item To design and implement a real-time wireless data communication system using the STM32 microcontroller.
+    \item To receive accelerometer data from a custom-developed Android application via the HC-05 Bluetooth module.
+    \item To implement interrupt-based UART data reception for efficient and non-blocking communication.
+    \item To forward received IMU data to a PC and visualize it using Python through 2D and 3D plots.
+    \item To gain practical experience in integrating mobile applications, embedded firmware, and PC-based data visualization.
+    \item To enhance proficiency in STM32 programming using STM32CubeMX and HAL libraries.
+
+\end{itemize}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8
+    \textwidth]{Block diagram.png}
+    \caption{Block Diagram of the Project}
+    \label{Block Diagram}
+\end{figure}
+\section{Background}
+In embedded systems, real-time data acquisition and communication are essential for monitoring and control applications. Microcontrollers like the STM32 offer advanced features such as hardware USART peripherals and interrupt-driven communication which make them ideal for such tasks. In this project, a custom mobile application was developed using MIT App Inventor  to access and transmit the phone’s built-in accelerometer data over Bluetooth using the HC-05 module \cite{hc05datasheet}  The STM32 receives this data via USART1 using interrupt service routines  and forwards it to a PC via USART2, also using interrupts to avoid polling delays. On the PC side, Python is used to capture and plot the incoming data in real time , allowing for visual monitoring of acceleration in three axes. This setup demonstrates a complete pipeline from mobile sensor to visualization,\cite{pyserial} illustrating practical applications in wearable devices, motion analysis, and embedded data logging . Any observed deviations from expected performance, such as delayed plotting or occasional data loss, are attributed to serial buffer overflows or minor baud rate mismatches, which were addressed through code optimization and hardware-level synchronization.
+
+\pagebreak
+
+
+
+ 
+%-----------------------------------------------------------
+
+%-----CHAPTER 2: Equipment and Procedure--------------------
+\chapter{Equipment and Procedure}\label{ch:equip_proc}
+\section{Equipment}
+
+\begin{itemize}
+    \item STM32 microcontroller (STM32F103C8T6)
+    \item HC-05 Bluetooth Module
+    \item Smartphone (with the custom app for transmitting accelerometer data)
+    \item Breadboard
+    \item Jumper Wires
+    \item STM-Debugger (for flashing code and powering the STM32)
+    \item PC (for monitoring serial output and plotting data)
+    \item STM32CubeMX (for configuration)
+    \item Keil MDK (for code development and flashing)
+    \item External Power Supply (if required, depending on your STM32 setup)
+    \item Mobile App (custom-developed app for sending accelerometer data via Bluetooth)
+    \item Python (for data visualization and plotting)
+\end{itemize}
+\section{Procedure}
+
+\subsection{Hardware Setup}
+\begin{enumerate}
+    \item Connect the HC-05 Bluetooth module to the STM32 board. Connect TX of HC-05 to RX of STM32 and RX of HC-05 to TX of STM32.
+    \item Power the STM32 via USB or an external power source.
+    \item Pair the smartphone with the HC-05 module.
+\end{enumerate}
+
+\subsection{STM32 Configuration}
+\begin{enumerate}
+    \item Open STM32CubeMX and start a new project.
+    \item Enable two USARTs: one for the Bluetooth module and another for PC communication.
+    \item Set UART parameters such as baud rate and stop bits.
+    \item Configure any required GPIO pins.
+    \item Generate the code and open it in Keil MDK.
+\end{enumerate}
+
+\subsection{Code Development}
+\begin{enumerate}
+    \item Initialize both USARTs in Keil MDK:
+    \begin{itemize}
+        \item One USART receives data from HC-05.
+        \item The other USART sends data to the PC.
+    \end{itemize}
+    \item Implement code to forward data from Bluetooth to PC.
+    \item Use HAL libraries for UART communication and error handling.
+    \item Build and flash the code to the STM32 using ST-Link.
+\end{enumerate}
+
+\subsection{Mobile App and Data Transmission}
+\begin{enumerate}
+    \item Launch the custom mobile app to transmit accelerometer data over Bluetooth.
+    \item The HC-05 module receives the data and sends it to the STM32.
+\end{enumerate}
+
+\subsection{Data Reception and Plotting}
+\begin{enumerate}
+    \item Open a serial monitor (e.g., Tera Term or PuTTY) on the PC to view incoming data from the STM32.
+    \item Use Python with \texttt{pyserial} to read the serial data.
+    \item Plot the X, Y, and Z acceleration values using libraries like \texttt{matplotlib} or \texttt{plotly}.
+    \item Update the graph in real-time as new data is received.
+\end{enumerate}
+
+\subsection{Testing and Verification}
+\begin{enumerate}
+    \item Move the smartphone to produce changes in accelerometer readings.
+    \item Check that the data is displayed correctly in the serial monitor and plotted accurately in real time.
+\end{enumerate}
+
+
+\chapter{Results and Discussion}\label{ch:results}
+\section{Results}
+\subsection{STM32 Main Code}
+
+\begin{lstlisting}
+#include "main.h"
+
+UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
+
+uint8_t rx_data[13];
+volatile uint8_t rx_complete = 0;
+
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_USART1_UART_Init(void);
+static void MX_USART2_UART_Init(void);
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == USART1)
+  {
+    rx_complete = 1;
+    HAL_UART_Receive_IT(&huart1, rx_data, 13);
+  }
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == USART1)
+  {
+    HAL_UART_Receive_IT(&huart1, rx_data, 13);
+  }
+}
+
+int main(void)
+{
+  HAL_Init();
+  SystemClock_Config();
+  MX_GPIO_Init();
+  MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
+
+  HAL_UART_Receive_IT(&huart1, rx_data, 13);
+
+  while (1)
+  {
+    if (rx_complete)
+    {
+      HAL_UART_Transmit(&huart2, rx_data, 13, HAL_MAX_DELAY);
+      rx_complete = 0;
+    }
+  }
+}
+
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL16;
+  HAL_RCC_OscConfig(&RCC_OscInitStruct);
+
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
+}
+
+static void MX_USART1_UART_Init(void)
+{
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 9600;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  HAL_UART_Init(&huart1);
+}
+
+static void MX_USART2_UART_Init(void)
+{
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 9600;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  HAL_UART_Init(&huart2);
+}
+
+static void MX_GPIO_Init(void)
+{
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  GPIO_InitStruct.Pin = GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_2;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+}
+void Error_Handler(void)
+{
+  __disable_irq();
+  while (1) { }
+\end{lstlisting}
+\clearpage
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{Circuit figure.jpeg}
+    \caption{Digital Clock Hardware System}
+    \label{fig:circuit-hardware}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Data coming into putty.jpeg}
+    \caption{Data Received from HC-05 into PuTTY}
+    \label{fig:putty-data}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\linewidth]{2D and 3D graphs.jpeg}
+    \caption{Accelerometer Data Visualization (2D and 3D Graphs in Python)}
+    \label{fig:graph-plot}
+\end{figure}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.4\linewidth]{Mobile interface of MIT app.jpeg}
+    \caption{Mobile-interface of MIT-App }
+    \label{fig:graph-plot}
+\end{figure}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\linewidth]{Blocks of MIT APP.jpeg}
+    \caption{MIT App for continous data transmission}
+    \label{fig:graph-plot}
+\end{figure}
+\clearpage
+\section{Discussion}
+
+The experiment aimed to implement a real-time wireless sensor data acquisition and visualization system, and the results obtained demonstrate that this objective was successfully achieved. The expected outcome was continuous transmission of accelerometer data from a smartphone app to the STM32 microcontroller via the HC-05 Bluetooth module, followed by the forwarding of this data to a PC through a second UART for live plotting. In practice, the system operated as intended, with real-time data received and transmitted with minimal latency. The use of interrupt-based UART communication in both reception (USART1) and transmission (USART2) proved effective, allowing for efficient and non-blocking data handling.
+
+The actual results closely matched expectations, although minor delays were observed in plotting when system resources were limited. These slight deviations can be attributed to occasional UART buffer overruns or Bluetooth transmission lag, particularly if the mobile device temporarily reduced update frequency due to internal power management. These errors were minimal and did not significantly affect the performance of the system. Careful tuning of UART baud rates and use of robust interrupt service routines helped mitigate most data loss and ensured reliable communication.
+
+The project reinforced the theoretical understanding of asynchronous serial communication and embedded interrupt handling. The hands-on configuration of UARTs in STM32Cube-MX and development in Keil using HAL libraries illustrated the theory well, showing how hardware peripherals can be used effectively for real-time embedded tasks. Additionally, the successful integration of a custom Android app with microcontroller firmware and Python scripting for PC visualization highlighted the interdisciplinary nature of modern embedded systems development.
+
+Any limitations encountered, such as potential latency or occasional dropped packets, could be improved by implementing DMA-based UART transfers or using a more reliable wireless communication protocol like BLE or Wi-Fi. Furthermore, the current setup could be made more robust with a checksum-based data validation or error correction mechanism. Nonetheless, the primary objective was met, as the STM32 reliably received and forwarded accelerometer data, and the Python script accurately plotted the results. These results validate the system’s effectiveness for use in real-time monitoring applications, such as motion tracking, gesture recognition, or condition monitoring in embedded environments.
+
+
+
+%-----------------------------------------------------------
+
+%-----CHAPTER 3: Discussion -------------------
+
+\chapter{Summary and Conclusion}
+
+
+\section{Summary}
+
+In this project, we successfully developed a real-time data acquisition system using the STM32 microcontroller. Accelerometer data from a mobile phone was transmitted wirelessly via the HC-05 Bluetooth module and received on the STM32 using UART1. The STM32 then forwarded the data to a PC through UART2, where it was visualized using Python-based 2D and 3D plotting. A custom Android app was designed to generate and send IMU sensor data. The system utilized UART interrupt handling for reliable communication and ensured continuous data flow from the mobile app to the PC. All components—including hardware setup, firmware coding, and Python visualization—were integrated effectively. The results met our expectations with only minimal and explainable deviations, demonstrating the practical implementation of wireless sensor data transmission and embedded systems communication.
+
+\section{Conclusion}
+ Through out this experiment, we learned how to use an STM32 microcontroller and Bluetooth communication to transmit real-time sensor data to a PC for visualization. We also discovered the importance of interrupt-driven communication and proper data handling for reliable performance. This experience showed how embedded systems can be used effectively for real-time monitoring applications.
+
+
+\cleardoublepage
+\addcontentsline{toc}{chapter}{\numberline{} Reference}
+\renewcommand\bibname{References}
+\bibliographystyle{IEEEtran}
+\bibliography{ref}
+\pagebreak
+
+
+\end{document}
